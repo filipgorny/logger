@@ -1,6 +1,6 @@
 # @filipgorny/logger
 
-Shared logging package with strategy pattern for flexible log output.
+Lightweight, colorful logging package with strategy pattern for flexible log output.
 
 ## Features
 
@@ -9,13 +9,16 @@ Shared logging package with strategy pattern for flexible log output.
 - **Multiple log levels** - DEBUG, INFO, WARN, ERROR
 - **Contextual logging** - Add metadata to logs
 - **Child loggers** - Create loggers with inherited context
-- **Colorized console output** - Better readability in development
+- **Colorized console output** - Beautiful, readable logs with custom colors
+- **Test-friendly** - Automatically suppresses error logs in test environments
+- **Clean format** - Simple `[HH:MM:SS] message` format
 - **Future-ready** - Prepared for Datadog integration
 
 ## Installation
 
 ```bash
-# In the monorepo, this package is automatically available
+npm install @filipgorny/logger
+# or
 pnpm add @filipgorny/logger
 ```
 
@@ -24,51 +27,75 @@ pnpm add @filipgorny/logger
 ### Basic Usage
 
 ```typescript
-import { createLogger, LogLevel } from '@filipgorny/logger'
+import { createLogger, LogLevel } from "@filipgorny/logger";
 
-const logger = createLogger('my-service', LogLevel.INFO)
+const logger = createLogger("my-service", LogLevel.INFO);
 
-logger.info('Server started', { port: 3000 })
-logger.warn('High memory usage', { usage: '85%' })
-logger.error('Database connection failed', error, { retries: 3 })
+logger.debug("Debugging info"); // Cyan
+logger.info("Server started"); // Yellow
+logger.warn("High memory usage"); // Magenta/Pink
+logger.error("Connection failed"); // Red
 ```
+
+### Output Format
+
+Logs are displayed in a clean, colorized format:
+
+```
+[08:46:40] Server started         # Yellow text, white timestamp
+[08:46:45] High memory usage      # Pink text, white timestamp
+[08:46:50] Connection failed      # Red text, white timestamp
+```
+
+### Color Scheme
+
+- **Timestamp** `[HH:MM:SS]` - White
+- **DEBUG** - Cyan
+- **INFO** - Yellow
+- **WARN** - Magenta (Pink)
+- **ERROR** - Red
 
 ### Custom Strategy
 
 ```typescript
-import { Logger, LogLevel, DatadogLogStrategy } from '@filipgorny/logger'
+import { Logger, LogLevel, LogStrategy } from "@filipgorny/logger";
 
-const logger = new Logger({
-  service: 'my-service',
+class CustomStrategy implements LogStrategy {
+  log(entry: LogEntry): void {
+    // Your custom logging logic
+  }
+}
+
+const logger = new Logger(new CustomStrategy(), {
+  service: "my-service",
   level: LogLevel.INFO,
-  strategy: new DatadogLogStrategy(process.env.DATADOG_API_KEY!)
-})
-
-logger.info('Using Datadog strategy')
+});
 ```
 
 ### Child Loggers
 
 ```typescript
-const logger = createLogger('api-service')
-const requestLogger = logger.child({ requestId: '123', userId: 'abc' })
+const logger = createLogger("api-service");
+const requestLogger = logger.child({ requestId: "123", userId: "abc" });
 
-requestLogger.info('Processing request') // Includes requestId and userId
+requestLogger.info("Processing request"); // Includes requestId and userId
 ```
 
-### Switching Strategies
+### Switching Strategies at Runtime
 
 ```typescript
-import { ConsoleLogStrategy, DatadogLogStrategy } from '@filipgorny/logger'
+import { ConsoleLogStrategy } from "@filipgorny/logger";
 
 // Start with console
-logger.setStrategy(new ConsoleLogStrategy())
+logger.setStrategy(new ConsoleLogStrategy());
 
-// Switch to Datadog in production
-if (process.env.NODE_ENV === 'production') {
-  logger.setStrategy(new DatadogLogStrategy(process.env.DATADOG_API_KEY!))
-}
+// Switch to custom strategy
+logger.setStrategy(new CustomStrategy());
 ```
+
+### Test Environment
+
+The logger automatically detects test environments (`NODE_ENV=test` or Jest) and suppresses `ERROR` level console output to keep test output clean.
 
 ## API
 
@@ -77,7 +104,7 @@ if (process.env.NODE_ENV === 'production') {
 Create a new logger instance.
 
 - `serviceName`: Name of the service (e.g., 'llm-service')
-- `level`: Minimum log level (default: LogLevel.INFO)
+- `level`: Minimum log level (default: `LogLevel.INFO`)
 
 ### Logger Methods
 
@@ -89,41 +116,54 @@ Create a new logger instance.
 - `setStrategy(strategy)` - Change the logging strategy
 - `setLevel(level)` - Change the minimum log level
 
+### Log Levels
+
+- `DEBUG` - Detailed debugging information
+- `INFO` - General informational messages (default)
+- `WARN` - Warning messages
+- `ERROR` - Error messages
+
 ## Strategies
 
 ### ConsoleLogStrategy (Default)
 
-Logs to console with colorized output.
-
-### DatadogLogStrategy (Coming Soon)
-
-Sends logs to Datadog HTTP API.
+Logs to console with colorized output and clean timestamp format.
 
 ### Custom Strategy
 
 Implement the `LogStrategy` interface:
 
 ```typescript
-import { LogStrategy, LogEntry } from '@filipgorny/logger'
+import { LogStrategy, LogEntry } from "@filipgorny/logger";
 
 class MyCustomStrategy implements LogStrategy {
   log(entry: LogEntry): void {
     // Your custom logging logic
+    console.log(`[${entry.service}] ${entry.message}`);
   }
 }
 ```
 
-## Log Levels
+## Advanced Features
 
-- `DEBUG` - Detailed debugging information
-- `INFO` - General informational messages
-- `WARN` - Warning messages
-- `ERROR` - Error messages
+### Table Logging
 
-## Example Output
+Display data in a beautiful table format:
 
+```typescript
+logger.table(
+  [
+    { name: "John", age: 30, city: "NYC" },
+    { name: "Jane", age: 25, city: "LA" },
+  ],
+  [
+    { key: "name", header: "Name" },
+    { key: "age", header: "Age" },
+    { key: "city", header: "City" },
+  ],
+);
 ```
-2025-10-28T21:00:00.123Z [llm-service] INFO  | Server started { port: 3003 }
-2025-10-28T21:00:05.456Z [llm-service] WARN  | High memory usage { usage: '85%' }
-2025-10-28T21:00:10.789Z [llm-service] ERROR | Database connection failed { retries: 3 }
-```
+
+## License
+
+MIT
