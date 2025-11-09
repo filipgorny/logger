@@ -1,6 +1,6 @@
 {
   "name": "@filipgorny/logger",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Shared logging package with strategy pattern",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
